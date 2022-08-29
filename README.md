@@ -4,9 +4,7 @@ Code for calculations and visualisations of the CANAL test case in NEMO
 Files
 ------
 
-save_mean_fields.py - Save the zonally and temporally averaged netCDF data
-
-interpolate_mean_fields.py - Interpolate onto the uniform CANAL grid
+mean_fields_for_initialisation.py - Obtain and interpolate the mean fields from the coupled model to the CANAL grid
 
 <img src="/images/interpolate_onto_CANAL.png" alt="Alt text" title="Optional title">
 
