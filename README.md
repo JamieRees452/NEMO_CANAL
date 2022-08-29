@@ -12,8 +12,8 @@ interpolate_mean_fields.py - Interpolate onto the uniform CANAL grid
 
 <img
   src="/images/interpolate_onto_CANAL.png"
-  alt="Alt text"
-  title="Optional title"
+  alt="Where is this text located"
+  title="Add the title here"
   style="display: inline-block; margin: 0 auto; max-width: 300px">
 
 U_TIW.txt - Interpolated mean zonal velocity field (flattened 1D numpy array)
