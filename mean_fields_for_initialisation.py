@@ -4,7 +4,9 @@ Save the mean fields for initialisation of the CANAL
 """
 
 import glob
-import xarray as xr
+import numpy             as np
+import scipy.interpolate as interp
+import xarray            as xr
 
 # List the files from the coupled model
 U_infile = glob.glob("/gws/nopw/j04/oxford_es/jrees/u-bx950/onm/EqPac*_grid_U.nc")[120:-1]
