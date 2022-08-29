@@ -1,5 +1,5 @@
 """
-Save the mean fields for initilisation of the CANAL
+Save the mean fields for initialisation of the CANAL
 
 """
 
