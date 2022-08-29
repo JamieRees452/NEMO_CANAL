@@ -8,7 +8,7 @@ save_mean_fields.py - Save the zonally and temporally averaged netCDF data
 
 interpolate_mean_fields.py - Interpolate onto the uniform CANAL grid
 
-![alt text](https://github.com/JamieRees452/NEMO_CANAL/tree/main/images?raw=true)
+<img src="/images/interpolate_onto_CANAL.png" alt="Alt text" title="Optional title">
 
 U_TIW.txt - Interpolated mean zonal velocity field (flattened 1D numpy array)
 
