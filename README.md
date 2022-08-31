@@ -6,7 +6,7 @@ Files
 
 mean_fields_for_initialisation.py - Obtain and interpolate the mean fields from the coupled model to the CANAL grid
 
-<img src="/images/interpolate_onto_CANAL.png" alt="Alt text" title="Optional title">
+<img src="/images/interpolate_CANAL.png" alt="Alt text" title="Optional title">
 
 U_TIW.txt - Interpolated mean zonal velocity field (flattened 1D numpy array)
 
