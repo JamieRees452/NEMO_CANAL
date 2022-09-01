@@ -1,6 +1,5 @@
 """
-Save the mean fields for initialisation of the CANAL
-
+Save the mean fields for initilisation of the CANAL
 """
 
 import glob
@@ -8,47 +7,86 @@ import numpy             as np
 import scipy.interpolate as interp
 import xarray            as xr
 
-# List the files from the coupled model
-U_infile = glob.glob("/gws/nopw/j04/oxford_es/jrees/u-bx950/onm/EqPac*_grid_U.nc")[120:-1]
-T_infile = glob.glob("/gws/nopw/j04/oxford_es/jrees/u-bx950/onm/EqPac*_grid_T.nc")[120:-1]
+MY_CANAL_directory = f'/home/users/jme22rs/NEMO/NEMO_CANAL/NEMO/tests/MY_CANAL'
+my_group_workspace = f'/gws/nopw/j04/oxford_es/jrees'
 
-# Open the datasets
-U_dataset = xr.open_mfdataset(U_infile)
-T_dataset = xr.open_mfdataset(T_infile)        
-    
-# Rename the dimensions
-U_dataset = U_dataset.rename({'time_counter':'time','depthu':'depth'})
-T_dataset = T_dataset.rename({'time_counter':'time','deptht':'depth'})
+latitude = np.loadtxt(f'{MY_CANAL_directory}/mean_fields/latitude.txt')
+depth    = np.loadtxt(f'{MY_CANAL_directory}/mean_fields/depth.txt')
 
-# Extract the region 15S-15N, 110-160W, 0-1100m
-xW25 = 80;  xE25 = 282; yS25 = 21; yN25 = 144; depthT25 = 0; depthB25 = 1100
+# -------------------------------------------------------------------------------------------------------
+# Zonally and temporally averaged mean fields from the coupled model 
+# -------------------------------------------------------------------------------------------------------
+
+U_infile = glob.glob(f'{my_group_workspace}/u-bx950/onm/EqPac*_grid_U.nc')
+T_infile = glob.glob(f'{my_group_workspace}/u-bx950/onm/EqPac*_grid_T.nc')
+        
+U_dataset = xr.open_mfdataset(U_infile).rename({'time_counter':'time','depthu':'depth'})
+T_dataset = xr.open_mfdataset(T_infile).rename({'time_counter':'time','deptht':'depth'})
 
 uoce = U_dataset.uo.sel(x=slice(xW25,xE25),y=slice(yS25,yN25),depth=slice(depthT25,depthB25))
-toce = T_dataset.thetao.sel(x=slice(xW25,xE25),y=slice(yS25,yN25),depth=slice(depthT25,depthB25))  
+toce = T_dataset.thetao.sel(x=slice(xW25,xE25),y=slice(yS25,yN25),depth=slice(depthT25,depthB25))
+soce = T_dataset.so.sel(x=slice(xW25,xE25),y=slice(yS25,yN25),depth=slice(depthT25,depthB25))     
 
-# Group the data by month and average zonally and temporally
 umean = uoce.groupby('time.month').mean(dim='time').mean(dim='x')
 tmean = toce.groupby('time.month').mean(dim='time').mean(dim='x')
+smean = soce.groupby('time.month').mean(dim='time').mean(dim='x')
 
-# Select the data from July-August and average temporally
 umean  = umean.isel(month=slice(5, 7)).mean(dim='month')
 tmean  = tmean.isel(month=slice(5, 7)).mean(dim='month')
+smean  = smean.isel(month=slice(5, 7)).mean(dim='month')
+
+# -------------------------------------------------------------------------------------------------------
+# From text files
+# -------------------------------------------------------------------------------------------------------
+
+# If loading the text data
+#umean = np.loadtxt(f'/home/users/jme22rs/NEMO/NEMO_CANAL/NEMO/tests/MY_CANAL/mean_fields/umean.txt'); umean = np.reshape(umean, (47, 123))
+#tmean = np.loadtxt(f'/home/users/jme22rs/NEMO/NEMO_CANAL/NEMO/tests/MY_CANAL/mean_fields/tmean.txt'); tmean = np.reshape(tmean, (47, 123))
+#smean = np.loadtxt(f'/home/users/jme22rs/NEMO/NEMO_CANAL/NEMO/tests/MY_CANAL/mean_fields/smean.txt'); smean = np.reshape(smean, (47, 123))
 
 # For interpolation, it is easier to relabel the dimensions as follows
-umean = xr.DataArray(umean, coords={'depth': depth, 'latitude': latitude}, dims=['depth', 'latitude'])
-tmean = xr.DataArray(tmean, coords={'depth': depth, 'latitude': latitude}, dims=['depth', 'latitude'])
+umean_new = xr.DataArray(umean, coords={'depth': depth, 'latitude': latitude}, dims=['depth', 'latitude'])
+tmean_new = xr.DataArray(tmean, coords={'depth': depth, 'latitude': latitude}, dims=['depth', 'latitude'])
+smean_new = xr.DataArray(smean, coords={'depth': depth, 'latitude': latitude}, dims=['depth', 'latitude'])
 
-rn_domszz = 1000; rn_dy = 20 # from namelist_cfg (read data from FORTRAN?)
-rn_domszy = 3300; rn_dz = 20 # from namelist_cfg (read data from FORTRAN?)
+# ------------------------------------------------------------------------------------------------------------
+# Interpolate onto the CANAL grid
+# ------------------------------------------------------------------------------------------------------------
+rn_domszx = 5560; rn_dx = 20; x_points = int(rn_domszx/rn_dx) + 1
+rn_domszy = 3340; rn_dy = 20; y_points = int(rn_domszy/rn_dy) + 1
+rn_domszz = 1000; rn_dz = 20; z_points = int(rn_domszz/rn_dz) + 1
 
-# Specify the uniform grid in the CANAL
-depth_canal = np.linspace(0, rn_domszz, int(rn_domszz/rn_dz))
-lat_canal   = np.linspace(-rn_domszy/(2*111), rn_domszy/(2*111), int(rn_domszy/rn_dy))
+lon_canal   = np.linspace(0, rn_domszx, x_points)
+lat_canal   = np.linspace(-rn_domszy/2, rn_domszy/2, y_points)
+depth_canal = np.linspace(0, rn_domszz, z_points)
 
-# Interpolate the non-uniform data onto the uniform grid
-umean_canal = umean.interp(latitude=lat_canal, depth=depth_canal, kwargs={"fill_value": "extrapolate"})
-tmean_canal = tmean.interp(latitude=lat_canal, depth=depth_canal, kwargs={"fill_value": "extrapolate"})
+# Interpolate onto the uniform CANAL grid
+umean_canal = umean_new.interp(latitude=lat_canal, depth=depth_canal, kwargs={"fill_value": "extrapolate"})
+tmean_canal = tmean_new.interp(latitude=lat_canal, depth=depth_canal, kwargs={"fill_value": "extrapolate"})
+smean_canal = smean_new.interp(latitude=lat_canal, depth=depth_canal, kwargs={"fill_value": "extrapolate"})
 
-# Convert to numpy arrays, flatten, and then save the data
-np.savetxt(f'/home/users/jme22rs/NEMO/NEMO_CANAL/NEMO/tests/MY_CANAL/mean_fields/U_TIW.txt',umean_canal.values.flatten())
-np.savetxt(f'/home/users/jme22rs/NEMO/NEMO_CANAL/NEMO/tests/MY_CANAL/mean_fields/T_TIW.txt',tmean_canal.values.flatten())
+# -----------------------------------------------------------------------------------------------------------
+# Broadcast into longitude
+# -----------------------------------------------------------------------------------------------------------
+
+# We initialise using 3D netCDF data hence we need longitude (use np.ones to keep lat-depth fields zonally invariant)
+lon = xr.DataArray(np.ones(x_points), [("longitude", lon_canal)])
+
+# Broadcast arrays to repeat (similar to np.tile)
+umean_canal = lon*umean_canal 
+tmean_canal = lon*tmean_canal 
+smean_canal = lon*smean_canal 
+
+# -----------------------------------------------------------------------------------------------------------
+# Save to netCDF
+# -----------------------------------------------------------------------------------------------------------
+
+# Save data to netCDF
+umean_canal.to_netcdf(f'{MY_CANAL_directory}/EXP00/umean_canal.nc')
+tmean_canal.to_netcdf(f'{MY_CANAL_directory}/EXP00/tmean_canal.nc')
+smean_canal.to_netcdf(f'{MY_CANAL_directory}/EXP00/smean_canal.nc')
+
+# When loading the data, we select the  named data variable
+#umean_canal = xr.open_dataset(f'{MY_CANAL_directory}/EXP00/umean_canal.nc').__xarray_dataarray_variable__
+#tmean_canal = xr.open_dataset(f'{MY_CANAL_directory}/EXP00/tmean_canal.nc').__xarray_dataarray_variable__
+#smean_canal = xr.open_dataset(f'{MY_CANAL_directory}/EXP00/smean_canal.nc').__xarray_dataarray_variable__
